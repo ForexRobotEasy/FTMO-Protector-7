@@ -1,0 +1,87 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                                     FTMO Protector 7 |
+//|                                      Copyright 2021, Forex Robot Easy Team |
+//|                                         https://www.forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//|                                         Input parameters                                                                 |
+//+------------------------------------------------------------------+
+input double MaxDailyLoss = 100.0; // Maximum daily loss in account currency
+
+//+------------------------------------------------------------------+
+//|                                          Global variables                                                                     |
+//+------------------------------------------------------------------+
+double g_MidnightBalance; // Midnight balance
+double g_CurrentBalance; // Current balance
+double g_DailyProfitLoss; // Daily profit/loss
+
+//+------------------------------------------------------------------+
+//|                                          Expert Advisor Start Function                                                        |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Calculate midnight balance at 01:00 system time
+    if(TimeHour(TimeCurrent()) == 1 && TimeMinute(TimeCurrent()) == 0 && TimeSecond(TimeCurrent()) == 0)
+    {
+        CalculateMidnightBalance();
+    }
+
+    // Calculate real-time daily profit/loss
+    CalculateDailyProfitLoss();
+
+    // Check if target profit/loss is achieved
+    if(g_DailyProfitLoss >= MaxDailyLoss || g_DailyProfitLoss <= -MaxDailyLoss)
+    {
+        DisableEAs();
+        CloseAllDealsAndOrders();
+    }
+
+    // Place your trading logic here
+    // ...
+}
+
+//+------------------------------------------------------------------+
+//|                                          Calculate Midnight Balance Function                                              |
+//+------------------------------------------------------------------+
+void CalculateMidnightBalance()
+{
+    g_MidnightBalance = AccountEquity();
+}
+
+//+------------------------------------------------------------------+
+//|                                          Calculate Daily Profit/Loss Function                                           |
+//+------------------------------------------------------------------+
+void CalculateDailyProfitLoss()
+{
+    double currentBalance = AccountEquity();
+    g_DailyProfitLoss = currentBalance - g_MidnightBalance;
+    g_CurrentBalance = currentBalance;
+}
+
+//+------------------------------------------------------------------+
+//|                                          Disable Expert Advisors Function                                                  |
+//+------------------------------------------------------------------+
+void DisableEAs()
+{
+    for(int i = 0; i < OrdersTotal(); i++)
+    {
+        OrderSelect(i, SELECT_BY_POS, MODE_TRADES);
+        ExpertRemove();
+    }
+}
+
+//+------------------------------------------------------------------+
+//|                                          Close All Deals and Orders Function                                             |
+//+------------------------------------------------------------------+
+void CloseAllDealsAndOrders()
+{
+    for(int i = 0; i < OrdersTotal(); i++)
+    {
+        OrderSelect(i, SELECT_BY_POS, MODE_TRADES);
+        OrderClose(OrderTicket(), OrderLots(), OrderClosePrice(), 0, clrRed);
+    }
+}
+
+//+------------------------------------------------------------------+
